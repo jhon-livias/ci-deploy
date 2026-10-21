@@ -1,0 +1,41 @@
+# Observabilidad (Loki + Promtail + Grafana). Solo red interna; Grafana por túnel SSH:
+#   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+#   ssh -L 3010:127.0.0.1:3010 usuario@vps   (Grafana: http://localhost:3010)
+services:
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki-data:/loki
+    deploy: { resources: { limits: { cpus: '1.0', memory: 512M } } }
+    networks: [internal]
+
+  promtail:
+    image: grafana/promtail:3.4.2
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    volumes:
+      - ./observability/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+    networks: [internal]
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set-in-env}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana-datasource.yaml:/etc/grafana/provisioning/datasources/loki.yaml:ro
+    ports: ['127.0.0.1:${GRAFANA_PORT:-3010}:3000']
+    depends_on: [loki]
+    networks: [internal, edge]
+
+volumes:
+  loki-data:
+  grafana-data:

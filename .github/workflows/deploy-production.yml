@@ -1,0 +1,55 @@
+name: CD production
+
+on:
+  repository_dispatch:
+    types: [deploy-production]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Component to deploy
+        type: choice
+        required: true
+        default: all
+        options: [frontend, backend, all]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Resolve deployment target
+        id: target
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "component=${{ github.event.client_payload.component }}" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.event.client_payload.sha }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "component=${{ inputs.component }}" >> "$GITHUB_OUTPUT"
+            echo "sha=" >> "$GITHUB_OUTPUT"
+          else
+            echo "component=deploy" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy through the VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 25m
+          script: |
+            export SOURCE_COMPONENT='${{ steps.target.outputs.component }}'
+            export SOURCE_SHA='${{ steps.target.outputs.sha }}'
+            cd /opt/ci/ci-deploy
+            bash scripts/deploy-production.sh
