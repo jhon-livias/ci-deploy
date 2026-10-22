@@ -50,7 +50,10 @@ case "$SOURCE_COMPONENT" in
     update_repo "$FRONTEND_DIR"
     cd "$DEPLOY_DIR"
     docker compose build gateway frontend
-    docker compose up -d --remove-orphans
+    # Wait until dependency-gated services such as reverse-proxy have actually
+    # started. Without --wait Compose can return while a service remains only
+    # in the Created state after its dependencies become healthy.
+    docker compose up -d --remove-orphans --wait --wait-timeout 180
     ;;
   *)
     die "Componente no permitido: $SOURCE_COMPONENT"
