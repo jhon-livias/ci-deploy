@@ -22,6 +22,7 @@ services:
       SERVICE: gateway
       NODE_ENV: production
       GATEWAY_PORT: 3000
+      AUTH_UPSTREAM: http://auth:3001
     expose: ['3000']
     healthcheck:
       test: ['CMD-SHELL', "node -e \"fetch('http://127.0.0.1:3000/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
@@ -32,8 +33,47 @@ services:
 
   auth:
     <<: *backend-image
-    environment: { SERVICE: auth, NODE_ENV: production, AUTH_PORT: 3001 }
+    depends_on:
+      auth-migrate: { condition: service_completed_successfully }
+    environment:
+      SERVICE: auth
+      NODE_ENV: production
+      AUTH_PORT: 3001
+      AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=auth
+      AUTH_JWT_ACCESS_SECRET: ${AUTH_JWT_ACCESS_SECRET:?set-in-env}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
     expose: ['3001']
+
+  auth-migrate:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    restart: 'no'
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=auth
+    command: ['npm', 'run', 'auth:db:migrate:deploy']
+    networks: [internal]
+
+  # Se ejecuta una sola vez de forma explícita para crear la primera cuenta.
+  # Ejemplo: docker compose run --rm -e ADMIN_USERNAME=admin ... auth-admin-bootstrap
+  auth-admin-bootstrap:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    profiles: ['manual']
+    restart: 'no'
+    depends_on:
+      auth-migrate: { condition: service_completed_successfully }
+    environment:
+      AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=auth
+    command: ['npm', 'run', 'auth:bootstrap-admin']
+    networks: [internal]
 
   academic:
     <<: *backend-image

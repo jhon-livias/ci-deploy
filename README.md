@@ -23,7 +23,7 @@ git clone <url-deploy> ci-deploy
 cd ci-deploy
 cp .env.example .env
 # Reemplaza todas las contraseñas de .env por valores únicos y seguros.
-docker compose build gateway frontend
+docker compose build gateway frontend auth-migrate
 docker compose up -d
 ```
 
@@ -32,6 +32,30 @@ El Gateway queda disponible detrás del proxy en `/api/`; la SPA en `/`. Comprue
 ```bash
 curl -fsS http://127.0.0.1:8080/api/v1/health
 ```
+
+## Primera cuenta administradora
+
+Antes de iniciar sesión, define en `.env` un valor aleatorio de al menos 32
+caracteres para `AUTH_JWT_ACCESS_SECRET`. Para uso HTTP local define además
+`AUTH_COOKIE_SECURE=false`; en producción HTTPS debe permanecer en `true`.
+
+Después de que `auth-migrate` haya terminado correctamente, crea una única
+cuenta administradora con variables efímeras de shell; la contraseña no se
+guarda en Compose, Git ni logs:
+
+```bash
+docker compose run --rm \
+  -e ADMIN_USERNAME=admin \
+  -e ADMIN_EMAIL=admin@uprit.edu.pe \
+  -e ADMIN_DOCUMENT_NUMBER=00000000 \
+  -e ADMIN_FIRST_NAME=Nombre \
+  -e ADMIN_PATERNAL_LAST_NAME=Apellido \
+  -e ADMIN_PASSWORD='una-contraseña-larga-y-unica' \
+  auth-admin-bootstrap
+```
+
+El comando falla sin modificar datos si el usuario o correo ya existen. Luego
+ingresa por la SPA: el rol `ADMINISTRATOR` se redirige a `/administracion`.
 
 ## Producción
 
@@ -59,6 +83,28 @@ SOURCE_COMPONENT=backend bash scripts/deploy-production.sh
 docker compose ps
 docker compose logs --tail=100 gateway frontend reverse-proxy
 ```
+
+En Git Bash, para reconstruir únicamente el frontend local después de un cambio:
+
+```bash
+bash scripts/rebuild-frontend.sh
+```
+
+Para reconstruir los microservicios y el Gateway, aplicar migraciones pendientes
+de Auth y conservar frontend e infraestructura en ejecución:
+
+```bash
+bash scripts/rebuild-backend.sh
+```
+
+En PowerShell también está disponible:
+
+```powershell
+.\scripts\rebuild-frontend.ps1
+```
+
+No reinicia el backend, las bases de datos ni el proxy. Si el navegador conserva
+archivos previos, usa `Ctrl + F5`.
 
 Antes de producción, protege las ramas `main`, revisa los workflows, crea copias de seguridad de PostgreSQL/MinIO y realiza una restauración de prueba.
 
