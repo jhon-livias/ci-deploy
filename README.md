@@ -42,6 +42,10 @@ Configura en el repositorio `ci-deploy` los secrets de GitHub Actions `VPS_HOST`
 - Variable `DEPLOY_REPOSITORY`: `<organización-o-usuario>/ci-deploy`.
 - Secret `DEPLOY_DISPATCH_TOKEN`: token fine-grained con permiso para crear `repository_dispatch` solo en `ci-deploy`.
 
+Consulta [la plantilla de valores de Actions](.github/SECRETS.template.md) para
+el formato correcto de una clave AWS `.pem`. Guarda cualquier valor real solo
+en GitHub Secrets; el archivo local `.github/SECRETS.md` está ignorado por Git.
+
 Un push validado a `main` de `ci-frontend` emite `component=frontend`; solo se construye y recrea el contenedor frontend. Un push validado de `ci-backend` emite `component=backend`; se reconstruye una imagen y se recrean Gateway y microservicios NestJS. Un cambio en este repositorio despliega todo el stack.
 
 ## Operación

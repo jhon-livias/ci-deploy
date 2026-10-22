@@ -111,7 +111,9 @@ services:
     networks: [internal]
 
   minio:
-    image: minio/minio:latest
+    # MinIO stopped publishing the former Docker Hub image. Pin the current
+    # official AIStor-compatible S3 image from Quay instead of using `latest`.
+    image: quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z
     restart: unless-stopped
     command: server /data
     environment:

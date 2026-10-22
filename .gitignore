@@ -1,3 +1,5 @@
 .env
+.github/SECRETS.md
 backups/
 certificates/
+key/
