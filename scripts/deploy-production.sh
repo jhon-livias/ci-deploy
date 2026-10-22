@@ -54,6 +54,11 @@ case "$SOURCE_COMPONENT" in
     # started. Without --wait Compose can return while a service remains only
     # in the Created state after its dependencies become healthy.
     docker compose up -d --remove-orphans --wait --wait-timeout 180
+    # Git updates bind-mounted Nginx files by replacing their inode. Recreate
+    # only the proxy so it mounts the updated configuration without restarting
+    # the application or data services.
+    docker compose up -d --no-deps --force-recreate reverse-proxy
+    docker compose up -d --wait --wait-timeout 180 reverse-proxy
     ;;
   *)
     die "Componente no permitido: $SOURCE_COMPONENT"
