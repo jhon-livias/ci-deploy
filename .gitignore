@@ -3,3 +3,4 @@
 backups/
 certificates/
 key/
+.DS_Store
