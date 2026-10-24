@@ -7,6 +7,8 @@ SOURCE_COMPONENT="${SOURCE_COMPONENT:-all}"
 SOURCE_SHA="${SOURCE_SHA:-}"
 BACKEND_DIR="$CI_ROOT/ci-backend"
 FRONTEND_DIR="$CI_ROOT/ci-frontend"
+DEPLOY_STATE_FILE="${DEPLOY_STATE_FILE:-$CI_ROOT/.ci-deploy-state}"
+SAVE_DEPLOYMENT_STATE=false
 
 log() { printf '[ci-deploy] %s\n' "$*"; }
 die() { log "ERROR: $*" >&2; exit 1; }
@@ -26,6 +28,19 @@ update_repo() {
   else
     git -C "$directory" reset --hard origin/main
   fi
+}
+
+deployment_state() {
+  printf 'deploy=%s\nbackend=%s\nfrontend=%s\n' \
+    "$(git -C "$DEPLOY_DIR" rev-parse HEAD)" \
+    "$(git -C "$BACKEND_DIR" rev-parse HEAD)" \
+    "$(git -C "$FRONTEND_DIR" rev-parse HEAD)"
+}
+
+save_deployment_state() {
+  local temporary_file="${DEPLOY_STATE_FILE}.tmp.$$"
+  deployment_state > "$temporary_file"
+  mv "$temporary_file" "$DEPLOY_STATE_FILE"
 }
 
 [ -f "$DEPLOY_DIR/.env" ] || die "Falta $DEPLOY_DIR/.env; crea uno desde .env.example"
@@ -49,6 +64,10 @@ case "$SOURCE_COMPONENT" in
     update_repo "$DEPLOY_DIR" "$SOURCE_SHA"
     update_repo "$BACKEND_DIR"
     update_repo "$FRONTEND_DIR"
+    if [ -f "$DEPLOY_STATE_FILE" ] && cmp -s "$DEPLOY_STATE_FILE" <(deployment_state); then
+      log "Los commits actuales ya están desplegados; se omite el CD duplicado"
+      exit 0
+    fi
     cd "$DEPLOY_DIR"
     docker compose build gateway frontend auth-migrate
     docker compose run --rm auth-migrate
@@ -61,6 +80,7 @@ case "$SOURCE_COMPONENT" in
     # the application or data services.
     docker compose up -d --no-deps --force-recreate reverse-proxy
     docker compose up -d --wait --wait-timeout 180 reverse-proxy
+    SAVE_DEPLOYMENT_STATE=true
     ;;
   *)
     die "Componente no permitido: $SOURCE_COMPONENT"
@@ -71,4 +91,5 @@ cd "$DEPLOY_DIR"
 if docker compose ps --services --filter "status=running" | grep -q "^gateway$"; then
   docker compose exec -T gateway node -e "fetch('http://127.0.0.1:3000/api/v1/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
 fi
+[ "$SAVE_DEPLOYMENT_STATE" = true ] && save_deployment_state
 log "Despliegue de $SOURCE_COMPONENT completado"

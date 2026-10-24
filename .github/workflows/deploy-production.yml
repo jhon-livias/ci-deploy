@@ -31,8 +31,11 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "component=${{ github.event.client_payload.component }}" >> "$GITHUB_OUTPUT"
-            echo "sha=${{ github.event.client_payload.sha }}" >> "$GITHUB_OUTPUT"
+            # A repository_dispatch puede llegar desde backend o frontend.
+            # Siempre se despliega el conjunto de ramas main para no publicar
+            # una versión mezclada de ambos repositorios.
+            echo "component=all" >> "$GITHUB_OUTPUT"
+            echo "sha=" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "component=${{ inputs.component }}" >> "$GITHUB_OUTPUT"
             echo "sha=" >> "$GITHUB_OUTPUT"
