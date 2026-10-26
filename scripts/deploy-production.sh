@@ -56,8 +56,9 @@ case "$SOURCE_COMPONENT" in
   backend)
     update_repo "$BACKEND_DIR" "$SOURCE_SHA"
     cd "$DEPLOY_DIR"
-    docker compose build gateway auth-migrate
+    docker compose build gateway auth-migrate academic-migrate
     docker compose run --rm auth-migrate
+    docker compose run --rm academic-migrate
     docker compose up -d --no-deps gateway auth academic students enrollment attendance-grades exams payments
     ;;
   deploy|all|"")
@@ -69,8 +70,9 @@ case "$SOURCE_COMPONENT" in
       exit 0
     fi
     cd "$DEPLOY_DIR"
-    docker compose build gateway frontend auth-migrate
+    docker compose build gateway frontend auth-migrate academic-migrate
     docker compose run --rm auth-migrate
+    docker compose run --rm academic-migrate
     # Wait until dependency-gated services such as reverse-proxy have actually
     # started. Without --wait Compose can return while a service remains only
     # in the Created state after its dependencies become healthy.

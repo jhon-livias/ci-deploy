@@ -12,10 +12,11 @@ if [[ ! -f .env ]]; then
 fi
 
 echo 'Construyendo la imagen del backend y la imagen de migraciones…'
-docker compose --env-file .env -f docker-compose.yml build gateway auth-migrate
+docker compose --env-file .env -f docker-compose.yml build gateway auth-migrate academic-migrate
 
 echo 'Aplicando migraciones pendientes del servicio auth…'
 docker compose --env-file .env -f docker-compose.yml run --rm auth-migrate
+docker compose --env-file .env -f docker-compose.yml run --rm academic-migrate
 
 echo 'Recreando microservicios y Gateway, sin reiniciar frontend ni infraestructura…'
 docker compose --env-file .env -f docker-compose.yml up -d --no-deps --force-recreate \

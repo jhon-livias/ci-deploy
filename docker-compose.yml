@@ -42,6 +42,8 @@ services:
       AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=auth
       AUTH_JWT_ACCESS_SECRET: ${AUTH_JWT_ACCESS_SECRET:?set-in-env}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
+      ACADEMIC_UPSTREAM: http://academic:3002
     expose: ['3001']
 
   auth-migrate:
@@ -77,8 +79,29 @@ services:
 
   academic:
     <<: *backend-image
-    environment: { SERVICE: academic, NODE_ENV: production, ACADEMIC_PORT: 3002 }
+    depends_on:
+      academic-migrate: { condition: service_completed_successfully }
+    environment:
+      SERVICE: academic
+      NODE_ENV: production
+      ACADEMIC_PORT: 3002
+      ACADEMIC_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=academic
+      SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
     expose: ['3002']
+
+  academic-migrate:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    restart: 'no'
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      ACADEMIC_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=academic
+    command: ['npm', 'run', 'academic:db:migrate:deploy']
+    networks: [internal]
 
   students:
     <<: *backend-image
