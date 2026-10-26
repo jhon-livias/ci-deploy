@@ -2,6 +2,22 @@
 #   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
 #   ssh -L 3010:127.0.0.1:3010 usuario@vps   (Grafana: http://localhost:3010)
 services:
+  otel-collector:
+    image: otel/opentelemetry-collector:0.128.0
+    restart: unless-stopped
+    command: ['--config=/etc/otel/config.yaml']
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otel/config.yaml:ro
+    networks: [internal]
+
+  gateway:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+
+  auth:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+
   loki:
     image: grafana/loki:3.4.2
     restart: unless-stopped
