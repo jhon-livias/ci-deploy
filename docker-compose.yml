@@ -61,6 +61,10 @@ services:
       AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=auth
       AUTH_JWT_ACCESS_SECRET: ${AUTH_JWT_ACCESS_SECRET:?set-in-env}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      RECAPTCHA_ENABLED: ${RECAPTCHA_ENABLED:-true}
+      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:?set-in-env}
+      RECAPTCHA_MIN_SCORE: ${RECAPTCHA_MIN_SCORE:-0.5}
+      RECAPTCHA_ALLOWED_HOSTNAMES: ${RECAPTCHA_ALLOWED_HOSTNAMES:?set-in-env}
       SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
       ACADEMIC_UPSTREAM: http://academic:3002
     networks: [internal, egress]
@@ -186,6 +190,10 @@ services:
       context: ../ci-frontend
       dockerfile: Dockerfile
     restart: unless-stopped
+    environment:
+      # La clave de sitio es pública y se inyecta al iniciar Nginx; nunca se incluye el secreto.
+      RECAPTCHA_ENABLED: ${RECAPTCHA_ENABLED:-true}
+      RECAPTCHA_SITE_KEY: ${RECAPTCHA_SITE_KEY:?set-in-env}
     networks: [internal]
     read_only: true
     tmpfs: [/tmp, /var/cache/nginx, /var/run]
