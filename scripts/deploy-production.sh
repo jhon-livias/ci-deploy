@@ -66,9 +66,12 @@ case "$SOURCE_COMPONENT" in
     update_repo "$BACKEND_DIR"
     update_repo "$FRONTEND_DIR"
     if [ -f "$DEPLOY_STATE_FILE" ] && cmp -s "$DEPLOY_STATE_FILE" <(deployment_state); then
-      log "Los commits actuales ya están desplegados; se omite el CD duplicado"
-      exit 0
-    fi
+      log "Los commits actuales ya están desplegados; se comprueba que los servicios sigan en pie"
+      cd "$DEPLOY_DIR"
+      docker compose up -d --remove-orphans --wait --wait-timeout 180
+      docker compose up -d --no-deps --force-recreate reverse-proxy
+      docker compose up -d --wait --wait-timeout 180 reverse-proxy
+    else
     cd "$DEPLOY_DIR"
     docker compose build gateway frontend auth-migrate academic-migrate
     docker compose run --rm auth-migrate
@@ -83,6 +86,7 @@ case "$SOURCE_COMPONENT" in
     docker compose up -d --no-deps --force-recreate reverse-proxy
     docker compose up -d --wait --wait-timeout 180 reverse-proxy
     SAVE_DEPLOYMENT_STATE=true
+    fi
     ;;
   *)
     die "Componente no permitido: $SOURCE_COMPONENT"

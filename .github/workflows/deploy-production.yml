@@ -70,12 +70,22 @@ jobs:
               fi
               tmp="$(mktemp)"
               if [ -f .env ]; then
-                grep -v "^${key}=" .env > "$tmp" || true
+                grep -a -v "^${key}=" .env > "$tmp" || true
+                old_count="$(grep -a -c '^[A-Za-z_][A-Za-z0-9_]*=' .env || true)"
+              else
+                old_count=0
               fi
               printf '%s=%s\n' "$key" "$value" >> "$tmp"
+              new_count="$(grep -a -c '^[A-Za-z_][A-Za-z0-9_]*=' "$tmp" || true)"
+              if [ "$new_count" -lt "$old_count" ]; then
+                echo "No se actualiza ${key}: la reescritura habría borrado variables" >&2
+                rm -f "$tmp"
+                return 1
+              fi
               mv "$tmp" .env
               chmod 600 .env
             }
+            echo "env_keys_before=$(grep -a -c '^[A-Za-z_][A-Za-z0-9_]*=' .env || true)"
             upsert_env RECAPTCHA_ENABLED true
             upsert_env RECAPTCHA_SECRET_KEY "$RECAPTCHA_SECRET_KEY"
             upsert_env RECAPTCHA_SITE_KEY "$RECAPTCHA_SITE_KEY"
