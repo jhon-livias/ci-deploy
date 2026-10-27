@@ -51,6 +51,11 @@ services:
       RABBITMQ_USER: ${RABBITMQ_DEFAULT_USER:?set-in-env}
       RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:?set-in-env}
       NOTIFICATION_TRANSPORTS: ${NOTIFICATION_TRANSPORTS:-websocket}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       NODE_ENV: production
       AUTH_PORT: 3001
       AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=auth
@@ -58,6 +63,7 @@ services:
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
       SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
       ACADEMIC_UPSTREAM: http://academic:3002
+    networks: [internal, egress]
     expose: ['3001']
 
   auth-migrate:
@@ -266,6 +272,8 @@ networks:
     internal: true
   # Solo reverse-proxy: necesaria para publicar el puerto en el host.
   edge:
+  # Solo auth: salida a internet para SMTP. El resto de los servicios permanece aislado.
+  egress:
 
 volumes:
   postgres-data:
