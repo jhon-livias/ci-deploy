@@ -70,6 +70,7 @@ services:
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
       SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
       ACADEMIC_UPSTREAM: http://academic:3002
+      PAYMENTS_UPSTREAM: http://payments:3007
     networks: [internal, egress]
     expose: ['3001']
 
@@ -179,13 +180,30 @@ services:
   payments:
     <<: *backend-image
     depends_on:
+      payments-migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
     environment:
       <<: *redis-env
       SERVICE: payments
       NODE_ENV: production
       PAYMENTS_PORT: 3007
+      PAYMENTS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=payments
+      SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
     expose: ['3007']
+
+  payments-migrate:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    restart: 'no'
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PAYMENTS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=payments
+    command: ['npm', 'run', 'payments:db:migrate:deploy']
+    networks: [internal]
 
   frontend:
     image: ${FRONTEND_IMAGE:-ci-frontend}:${FRONTEND_TAG:-local}
