@@ -71,6 +71,7 @@ services:
       SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
       ACADEMIC_UPSTREAM: http://academic:3002
       PAYMENTS_UPSTREAM: http://payments:3007
+      ATTENDANCE_GRADES_UPSTREAM: http://attendance-grades:3005
     networks: [internal, egress]
     expose: ['3001']
 
@@ -164,6 +165,7 @@ services:
       SERVICE: attendance-grades
       NODE_ENV: production
       ATTENDANCE_GRADES_PORT: 3005
+      SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
     expose: ['3005']
 
   exams:
