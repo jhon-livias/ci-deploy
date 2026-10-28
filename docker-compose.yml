@@ -72,6 +72,8 @@ services:
       ACADEMIC_UPSTREAM: http://academic:3002
       PAYMENTS_UPSTREAM: http://payments:3007
       ATTENDANCE_GRADES_UPSTREAM: http://attendance-grades:3005
+      STUDENTS_UPSTREAM: http://students:3003
+      ENROLLMENT_UPSTREAM: http://enrollment:3004
     networks: [internal, egress]
     expose: ['3001']
 
@@ -137,36 +139,86 @@ services:
   students:
     <<: *backend-image
     depends_on:
+      students-migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
     environment:
       <<: *redis-env
       SERVICE: students
       NODE_ENV: production
       STUDENTS_PORT: 3003
+      STUDENTS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=students
+      SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
     expose: ['3003']
+
+  students-migrate:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    restart: 'no'
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      STUDENTS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=students
+    command: ['npm', 'run', 'students:db:migrate:deploy']
+    networks: [internal]
 
   enrollment:
     <<: *backend-image
     depends_on:
+      enrollment-migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
     environment:
       <<: *redis-env
       SERVICE: enrollment
       NODE_ENV: production
       ENROLLMENT_PORT: 3004
+      ENROLLMENT_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=enrollment
+      SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
     expose: ['3004']
+
+  enrollment-migrate:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    restart: 'no'
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      ENROLLMENT_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=enrollment
+    command: ['npm', 'run', 'enrollment:db:migrate:deploy']
+    networks: [internal]
 
   attendance-grades:
     <<: *backend-image
     depends_on:
+      attendance-grades-migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
     environment:
       <<: *redis-env
       SERVICE: attendance-grades
       NODE_ENV: production
       ATTENDANCE_GRADES_PORT: 3005
+      ATTENDANCE_GRADES_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=attendance
       SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
     expose: ['3005']
+
+  attendance-grades-migrate:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    restart: 'no'
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      ATTENDANCE_GRADES_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=attendance
+    command: ['npm', 'run', 'attendance:db:migrate:deploy']
+    networks: [internal]
 
   exams:
     <<: *backend-image
