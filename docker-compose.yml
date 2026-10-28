@@ -205,6 +205,8 @@ services:
       ATTENDANCE_GRADES_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=attendance
       SITES_INTERNAL_SECRET: ${SITES_INTERNAL_SECRET:?set-in-env}
     expose: ['3005']
+    volumes:
+      - attendance-attachments:/var/lib/ci-attachments
 
   attendance-grades-migrate:
     image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
@@ -368,3 +370,4 @@ volumes:
   redis-data:
   rabbitmq-data:
   minio-data:
+  attendance-attachments:
