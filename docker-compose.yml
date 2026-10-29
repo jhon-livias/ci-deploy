@@ -293,6 +293,9 @@ services:
       context: ../ci-tickets
       dockerfile: Dockerfile
     restart: unless-stopped
+    environment:
+      RECAPTCHA_ENABLED: ${RECAPTCHA_ENABLED:-true}
+      RECAPTCHA_SITE_KEY: ${RECAPTCHA_SITE_KEY:?set-in-env}
     networks: [internal]
     read_only: true
     tmpfs:
