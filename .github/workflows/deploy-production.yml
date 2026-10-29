@@ -101,4 +101,5 @@ jobs:
             upsert_env GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
             upsert_env GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
             upsert_env GOOGLE_REDIRECT_URI "https://sistema-idiomas.uprit.edu.pe/api/v1/auth/google/callback"
+            upsert_env TICKETS_GOOGLE_REDIRECT_URI "https://tickets.uprit.edu.pe/api/v1/auth/google/callback"
             bash scripts/deploy-production.sh
