@@ -28,6 +28,7 @@ services:
       NODE_ENV: production
       GATEWAY_PORT: 3000
       AUTH_UPSTREAM: http://auth:3001
+      APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS:?set-in-env}
     expose: ['3000']
     depends_on:
       redis: { condition: service_healthy }
