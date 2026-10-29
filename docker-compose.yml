@@ -264,7 +264,7 @@ services:
   frontend:
     image: ${FRONTEND_IMAGE:-ci-frontend}:${FRONTEND_TAG:-local}
     build:
-      context: ../ci-frontend
+      context: ../ci-language-center
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:

@@ -2,7 +2,7 @@
 
 Repositorio de CD y orquestación. No aloja código de negocio ni secretos.
 
-- `docker-compose.yml` orquesta únicamente los repositorios hermanos `../ci-backend` y `../ci-frontend` más infraestructura.
+- `docker-compose.yml` orquesta únicamente los repositorios hermanos `../ci-backend` y `../ci-language-center` más infraestructura.
 - Cada aplicación mantiene su propio `Dockerfile` y workflow CI. Este repositorio solo ejecuta CD tras recibir `repository_dispatch` validado.
 - Un despliegue `frontend` no reconstruye backend; uno `backend` no reconstruye frontend. Cambios de `ci-deploy` pueden desplegar el stack completo.
 - Mantén todos los servicios salvo `reverse-proxy` sin puertos del host y en red Docker interna.
