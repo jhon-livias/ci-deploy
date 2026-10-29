@@ -286,6 +286,24 @@ services:
     cap_drop: [ALL]
     expose: ['8080']
 
+  tickets-frontend:
+    image: ${TICKETS_FRONTEND_IMAGE:-ci-tickets-frontend}:${TICKETS_FRONTEND_TAG:-local}
+    build:
+      context: ../ci-tickets
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks: [internal]
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+      - /etc/nginx/conf.d:uid=101,gid=101,mode=755
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    expose: ['8080']
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -348,6 +366,7 @@ services:
     depends_on:
       gateway: { condition: service_healthy }
       frontend: { condition: service_started }
+      tickets-frontend: { condition: service_started }
     ports: ['${HTTP_PORT:-8080}:8080']
     volumes:
       - ./reverse-proxy/default.conf:/etc/nginx/conf.d/default.conf:ro
