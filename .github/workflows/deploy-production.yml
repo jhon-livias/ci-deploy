@@ -93,6 +93,11 @@ jobs:
             upsert_env RECAPTCHA_SITE_KEY "$RECAPTCHA_SITE_KEY"
             upsert_env RECAPTCHA_MIN_SCORE "${RECAPTCHA_MIN_SCORE:-0.5}"
             upsert_env RECAPTCHA_ALLOWED_HOSTNAMES "$RECAPTCHA_ALLOWED_HOSTNAMES"
+            current_hosts="$(grep -a '^RECAPTCHA_ALLOWED_HOSTNAMES=' .env | tail -n 1 | cut -d= -f2-)"
+            case ",$current_hosts," in
+              *,tickets.uprit.edu.pe,*) ;;
+              *) upsert_env RECAPTCHA_ALLOWED_HOSTNAMES "${current_hosts:+$current_hosts,}tickets.uprit.edu.pe" ;;
+            esac
             upsert_env GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
             upsert_env GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
             upsert_env GOOGLE_REDIRECT_URI "https://sistema-idiomas.uprit.edu.pe/api/v1/auth/google/callback"
