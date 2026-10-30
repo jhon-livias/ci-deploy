@@ -8,6 +8,7 @@ SOURCE_SHA="${SOURCE_SHA:-}"
 BACKEND_DIR="$CI_ROOT/ci-backend"
 FRONTEND_DIR="$CI_ROOT/ci-language-center"
 TICKETS_FRONTEND_DIR="$CI_ROOT/ci-tickets"
+IDENTITY_FRONTEND_DIR="$CI_ROOT/ci-identity"
 DEPLOY_STATE_FILE="${DEPLOY_STATE_FILE:-$CI_ROOT/.ci-deploy-state}"
 SAVE_DEPLOYMENT_STATE=false
 
@@ -32,11 +33,12 @@ update_repo() {
 }
 
 deployment_state() {
-  printf 'deploy=%s\nbackend=%s\nfrontend=%s\ntickets_frontend=%s\n' \
+  printf 'deploy=%s\nbackend=%s\nfrontend=%s\ntickets_frontend=%s\nidentity_frontend=%s\n' \
     "$(git -C "$DEPLOY_DIR" rev-parse HEAD)" \
     "$(git -C "$BACKEND_DIR" rev-parse HEAD)" \
     "$(git -C "$FRONTEND_DIR" rev-parse HEAD)" \
-    "$(git -C "$TICKETS_FRONTEND_DIR" rev-parse HEAD)"
+    "$(git -C "$TICKETS_FRONTEND_DIR" rev-parse HEAD)" \
+    "$(git -C "$IDENTITY_FRONTEND_DIR" rev-parse HEAD)"
 }
 
 save_deployment_state() {
@@ -61,6 +63,12 @@ case "$SOURCE_COMPONENT" in
     docker compose build tickets-frontend
     docker compose up -d --no-deps tickets-frontend
     ;;
+  identity-frontend)
+    update_repo "$IDENTITY_FRONTEND_DIR" "$SOURCE_SHA"
+    cd "$DEPLOY_DIR"
+    docker compose build identity-frontend
+    docker compose up -d --no-deps identity-frontend
+    ;;
   backend)
     update_repo "$BACKEND_DIR" "$SOURCE_SHA"
     cd "$DEPLOY_DIR"
@@ -78,6 +86,7 @@ case "$SOURCE_COMPONENT" in
     update_repo "$BACKEND_DIR"
     update_repo "$FRONTEND_DIR"
     update_repo "$TICKETS_FRONTEND_DIR"
+    update_repo "$IDENTITY_FRONTEND_DIR"
     if [ -f "$DEPLOY_STATE_FILE" ] && cmp -s "$DEPLOY_STATE_FILE" <(deployment_state); then
       log "Los commits actuales ya están desplegados; se comprueba que los servicios sigan en pie"
       cd "$DEPLOY_DIR"
@@ -86,7 +95,7 @@ case "$SOURCE_COMPONENT" in
       docker compose up -d --wait --wait-timeout 180 reverse-proxy
     else
     cd "$DEPLOY_DIR"
-    docker compose build gateway frontend tickets-frontend auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate
+    docker compose build gateway frontend tickets-frontend identity-frontend auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate
     docker compose run --rm auth-migrate
     docker compose run --rm academic-migrate
     docker compose run --rm payments-migrate
