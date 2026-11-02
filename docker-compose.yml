@@ -112,6 +112,22 @@ services:
     command: ['npm', 'run', 'auth:bootstrap-admin']
     networks: [internal]
 
+  auth-tickets-bootstrap:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    profiles: ['manual']
+    restart: 'no'
+    depends_on:
+      auth-migrate: { condition: service_completed_successfully }
+    environment:
+      AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=auth
+      TICKETS_DEMO_PASSWORD: ${TICKETS_DEMO_PASSWORD:-12345678}
+    command: ['npm', 'run', 'auth:bootstrap-tickets-users']
+    networks: [internal]
+
   academic:
     <<: *backend-image
     depends_on:

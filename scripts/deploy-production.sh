@@ -74,6 +74,7 @@ case "$SOURCE_COMPONENT" in
     cd "$DEPLOY_DIR"
     docker compose build gateway auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate
     docker compose run --rm auth-migrate
+    docker compose --profile manual run --rm auth-tickets-bootstrap
     docker compose run --rm academic-migrate
     docker compose run --rm payments-migrate
     docker compose run --rm attendance-grades-migrate
@@ -97,6 +98,7 @@ case "$SOURCE_COMPONENT" in
     cd "$DEPLOY_DIR"
     docker compose build gateway frontend tickets-frontend identity-frontend auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate
     docker compose run --rm auth-migrate
+    docker compose --profile manual run --rm auth-tickets-bootstrap
     docker compose run --rm academic-migrate
     docker compose run --rm payments-migrate
     docker compose run --rm attendance-grades-migrate
