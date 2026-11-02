@@ -28,10 +28,12 @@ services:
       NODE_ENV: production
       GATEWAY_PORT: 3000
       AUTH_UPSTREAM: http://auth:3001
+      TICKETS_UPSTREAM: http://tickets:3008
       APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS:?set-in-env}
     expose: ['3000']
     depends_on:
       redis: { condition: service_healthy }
+      tickets: { condition: service_started }
     healthcheck:
       test: ['CMD-SHELL', "node -e \"fetch('http://127.0.0.1:3000/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 30s
@@ -279,6 +281,50 @@ services:
     environment:
       PAYMENTS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=payments
     command: ['npm', 'run', 'payments:db:migrate:deploy']
+    networks: [internal]
+
+  tickets:
+    <<: *backend-image
+    depends_on:
+      tickets-migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    environment:
+      <<: *redis-env
+      SERVICE: tickets
+      NODE_ENV: production
+      TICKETS_PORT: 3008
+      TICKETS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=tickets
+      AUTH_JWT_ACCESS_SECRET: ${AUTH_JWT_ACCESS_SECRET:?set-in-env}
+      APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS:?set-in-env}
+    expose: ['3008']
+
+  tickets-migrate:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    restart: 'no'
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      TICKETS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=tickets
+    command: ['npm', 'run', 'tickets:db:migrate:deploy']
+    networks: [internal]
+
+  tickets-catalog-bootstrap:
+    image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
+    build:
+      context: ../ci-backend
+      dockerfile: Dockerfile
+      target: build
+    profiles: ['manual']
+    restart: 'no'
+    depends_on:
+      tickets-migrate: { condition: service_completed_successfully }
+    environment:
+      TICKETS_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=tickets
+    command: ['npm', 'run', 'tickets:bootstrap-catalog']
     networks: [internal]
 
   frontend:

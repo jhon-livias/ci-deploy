@@ -72,7 +72,7 @@ case "$SOURCE_COMPONENT" in
   backend)
     update_repo "$BACKEND_DIR" "$SOURCE_SHA"
     cd "$DEPLOY_DIR"
-    docker compose build gateway auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate
+    docker compose build gateway auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate tickets-migrate
     docker compose run --rm auth-migrate
     docker compose --profile manual run --rm auth-tickets-bootstrap
     docker compose run --rm academic-migrate
@@ -80,7 +80,9 @@ case "$SOURCE_COMPONENT" in
     docker compose run --rm attendance-grades-migrate
     docker compose run --rm students-migrate
     docker compose run --rm enrollment-migrate
-    docker compose up -d --no-deps gateway auth academic students enrollment attendance-grades exams payments
+    docker compose run --rm tickets-migrate
+    docker compose --profile manual run --rm tickets-catalog-bootstrap
+    docker compose up -d --no-deps gateway auth academic students enrollment attendance-grades exams payments tickets
     ;;
   deploy|all|"")
     update_repo "$DEPLOY_DIR" "$SOURCE_SHA"
@@ -96,7 +98,7 @@ case "$SOURCE_COMPONENT" in
       docker compose up -d --wait --wait-timeout 180 reverse-proxy
     else
     cd "$DEPLOY_DIR"
-    docker compose build gateway frontend tickets-frontend identity-frontend auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate
+    docker compose build gateway frontend tickets-frontend identity-frontend auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate tickets-migrate
     docker compose run --rm auth-migrate
     docker compose --profile manual run --rm auth-tickets-bootstrap
     docker compose run --rm academic-migrate
@@ -104,6 +106,8 @@ case "$SOURCE_COMPONENT" in
     docker compose run --rm attendance-grades-migrate
     docker compose run --rm students-migrate
     docker compose run --rm enrollment-migrate
+    docker compose run --rm tickets-migrate
+    docker compose --profile manual run --rm tickets-catalog-bootstrap
     # Wait until dependency-gated services such as reverse-proxy have actually
     # started. Without --wait Compose can return while a service remains only
     # in the Created state after its dependencies become healthy.
