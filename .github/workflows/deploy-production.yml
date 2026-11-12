@@ -111,6 +111,7 @@ jobs:
             upsert_env GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
             upsert_env GOOGLE_REDIRECT_URI "https://sistema-idiomas.uprit.edu.pe/api/v1/auth/google/callback"
             upsert_env TICKETS_GOOGLE_REDIRECT_URI "https://tickets.uprit.edu.pe/api/v1/auth/google/callback"
+            upsert_env STUDY_PLANS_GOOGLE_REDIRECT_URI "https://planes.uprit.edu.pe/api/v1/auth/google/callback"
             if [ -n "$SOURCE_SHA" ]; then
               git fetch --prune origin "$SOURCE_SHA"
               git reset --hard "$SOURCE_SHA"
