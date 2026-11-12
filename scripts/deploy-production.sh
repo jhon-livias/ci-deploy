@@ -16,7 +16,7 @@ SAVE_DEPLOYMENT_STATE=false
 
 log() { printf '[ci-deploy] %s\n' "$*" >&2; }
 trap '' PIPE
-trap 'log "se detuvo en la linea $LINENO"' ERR
+trap 'log "se detuvo en la linea $LINENO"; docker compose -f "$DEPLOY_DIR/docker-compose.yml" logs --tail 50 auth >&2 || true' ERR
 die() { log "ERROR: $*" >&2; exit 1; }
 
 update_repo() {
@@ -227,6 +227,20 @@ case "$SOURCE_COMPONENT" in
     ;;
 esac
 
+ensure_auth_dns() {
+  cd "$DEPLOY_DIR"
+  docker compose ps --services --filter "status=running" | grep -q "^gateway$" || return 0
+  docker compose ps --services --filter "status=running" | grep -q "^auth$" || return 0
+  if docker compose exec -T gateway node -e "require('dns').lookup('auth', (error) => process.exit(error ? 1 : 0))"; then
+    return 0
+  fi
+  log "El gateway no resuelve auth. Se muestran las últimas líneas y se recrean ambos servicios."
+  docker compose logs --tail 40 auth >&2 || true
+  docker compose up -d --no-deps --force-recreate auth
+  docker compose up -d --no-deps --wait --wait-timeout 120 auth gateway
+}
+
+ensure_auth_dns
 cd "$DEPLOY_DIR"
 if docker compose ps --services --filter "status=running" | grep -q "^gateway$"; then
   docker compose exec -T gateway node -e "fetch('http://127.0.0.1:3000/api/v1/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"

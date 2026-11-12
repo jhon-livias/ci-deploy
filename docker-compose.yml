@@ -34,6 +34,7 @@ services:
     expose: ['3000']
     depends_on:
       redis: { condition: service_healthy }
+      auth: { condition: service_healthy }
       tickets: { condition: service_started }
       study-plans: { condition: service_started }
     healthcheck:
@@ -90,6 +91,12 @@ services:
       ENROLLMENT_UPSTREAM: http://enrollment:3004
     networks: [internal, egress]
     expose: ['3001']
+    healthcheck:
+      test: ['CMD-SHELL', "node -e \"fetch('http://127.0.0.1:3001/api/v1/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 25s
 
   auth-migrate:
     image: ${BACKEND_MIGRATOR_IMAGE:-ci-backend-migrator}:${BACKEND_TAG:-local}
