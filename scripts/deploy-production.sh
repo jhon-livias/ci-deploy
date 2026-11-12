@@ -181,7 +181,8 @@ case "$SOURCE_COMPONENT" in
     update_repo "$TICKETS_FRONTEND_DIR"
     update_repo "$IDENTITY_FRONTEND_DIR"
     ensure_checkout "$STUDY_PLANS_FRONTEND_DIR" "$STUDY_PLANS_FRONTEND_URL"
-    if [ -f "$DEPLOY_STATE_FILE" ] && cmp -s "$DEPLOY_STATE_FILE" <(deployment_state); then
+    deployment_state > "${DEPLOY_STATE_FILE}.next"
+    if [ -f "$DEPLOY_STATE_FILE" ] && cmp -s "$DEPLOY_STATE_FILE" "${DEPLOY_STATE_FILE}.next"; then
       log "Los commits actuales ya están desplegados; se comprueba que los servicios sigan en pie"
       cd "$DEPLOY_DIR"
       docker compose up -d --remove-orphans --wait --wait-timeout 180
