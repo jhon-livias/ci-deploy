@@ -34,27 +34,31 @@ update_repo() {
   fi
 }
 
-authenticated_clone_url() {
-  local public_url="$1"
-  local donor_url="$2"
-  case "$donor_url" in
-    https://*@github.com/*)
-      printf '%s@github.com/%s' "${donor_url%%@github.com/*}" "${public_url#https://github.com/}"
-      ;;
-    *)
-      printf '%s' "$public_url"
-      ;;
-  esac
-}
-
 ensure_checkout() {
   local directory="$1"
   local url="$2"
   if [ ! -d "$directory/.git" ]; then
     log "Clonando el repositorio de planes de estudio"
-    local donor_url
-    donor_url="$(git -C "$BACKEND_DIR" remote get-url origin)"
-    git clone --branch main "$(authenticated_clone_url "$url" "$donor_url")" "$directory"
+    local auth user pass askpass path
+    path="${url#https://github.com/}"
+    auth="$(git -C "$BACKEND_DIR" credential fill <<EOF
+protocol=https
+host=github.com
+path=jhon-livias/ci-backend.git
+
+EOF
+)"
+    user="$(printf '%s\n' "$auth" | sed -n 's/^username=//p' | head -n 1)"
+    pass="$(printf '%s\n' "$auth" | sed -n 's/^password=//p' | head -n 1)"
+    [ -n "$user" ] && [ -n "$pass" ] || die "El servidor no tiene credencial para clonar planes de estudio"
+    askpass="$(mktemp)"
+    printf '%s\n' '#!/bin/sh' 'case "$1" in' '*Username*) printf %s "$GIT_CLONE_USER" ;;' '*) printf %s "$GIT_CLONE_PASS" ;;' 'esac' > "$askpass"
+    chmod 700 "$askpass"
+    GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="$askpass" GIT_CLONE_USER="$user" GIT_CLONE_PASS="$pass" \
+      git clone --branch main "$url" "$directory"
+    rm -f "$askpass"
+    printf 'protocol=https\nhost=github.com\npath=%s\nusername=%s\npassword=%s\n\n' "$path" "$user" "$pass" | git credential approve
+    unset user pass auth
   fi
   update_repo "$directory"
 }
