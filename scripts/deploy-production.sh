@@ -34,12 +34,27 @@ update_repo() {
   fi
 }
 
+authenticated_clone_url() {
+  local public_url="$1"
+  local donor_url="$2"
+  case "$donor_url" in
+    https://*@github.com/*)
+      printf '%s@github.com/%s' "${donor_url%%@github.com/*}" "${public_url#https://github.com/}"
+      ;;
+    *)
+      printf '%s' "$public_url"
+      ;;
+  esac
+}
+
 ensure_checkout() {
   local directory="$1"
   local url="$2"
   if [ ! -d "$directory/.git" ]; then
-    log "Clonando $url"
-    git clone --branch main "$url" "$directory"
+    log "Clonando el repositorio de planes de estudio"
+    local donor_url
+    donor_url="$(git -C "$BACKEND_DIR" remote get-url origin)"
+    git clone --branch main "$(authenticated_clone_url "$url" "$donor_url")" "$directory"
   fi
   update_repo "$directory"
 }
