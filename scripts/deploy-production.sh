@@ -39,26 +39,19 @@ ensure_checkout() {
   local url="$2"
   if [ ! -d "$directory/.git" ]; then
     log "Clonando el repositorio de planes de estudio"
-    local auth user pass askpass path
-    path="${url#https://github.com/}"
-    auth="$(git -C "$BACKEND_DIR" credential fill <<EOF
-protocol=https
-host=github.com
-path=jhon-livias/ci-backend.git
-
-EOF
-)"
-    user="$(printf '%s\n' "$auth" | sed -n 's/^username=//p' | head -n 1)"
-    pass="$(printf '%s\n' "$auth" | sed -n 's/^password=//p' | head -n 1)"
-    [ -n "$user" ] && [ -n "$pass" ] || die "El servidor no tiene credencial para clonar planes de estudio"
-    askpass="$(mktemp)"
-    printf '%s\n' '#!/bin/sh' 'case "$1" in' '*Username*) printf %s "$GIT_CLONE_USER" ;;' '*) printf %s "$GIT_CLONE_PASS" ;;' 'esac' > "$askpass"
-    chmod 700 "$askpass"
-    GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="$askpass" GIT_CLONE_USER="$user" GIT_CLONE_PASS="$pass" \
-      git clone --branch main "$url" "$directory"
-    rm -f "$askpass"
-    printf 'protocol=https\nhost=github.com\npath=%s\nusername=%s\npassword=%s\n\n' "$path" "$user" "$pass" | git credential approve
-    unset user pass auth
+    local -a git_config=()
+    local line key value
+    while IFS= read -r line; do
+      key="${line%%=*}"
+      value="${line#*=}"
+      case "$key" in
+        credential.*|url.*) git_config+=(-c "$key=$value") ;;
+      esac
+    done < <(git -C "$BACKEND_DIR" config --local --list)
+    git "${git_config[@]}" clone --branch main "$url" "$directory"
+    for line in $(git -C "$BACKEND_DIR" config --local --name-only --get-regexp '^(credential\.|url\.)' || true); do
+      git -C "$directory" config --local "$line" "$(git -C "$BACKEND_DIR" config --local --get "$line")"
+    done
   fi
   update_repo "$directory"
 }
