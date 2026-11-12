@@ -39,19 +39,29 @@ ensure_checkout() {
   local url="$2"
   if [ ! -d "$directory/.git" ]; then
     log "Clonando el repositorio de planes de estudio"
-    local -a git_config=()
-    local line key value
-    while IFS= read -r line; do
-      key="${line%%=*}"
-      value="${line#*=}"
-      case "$key" in
-        credential.*|url.*) git_config+=(-c "$key=$value") ;;
+    local store line userinfo askpass
+    store="${HOME}/.git-credentials"
+    userinfo=""
+    if [ -r "$store" ]; then
+      line="$(grep -m 1 'github.com' "$store" || true)"
+      case "$line" in
+        https://*@github.com*|https://*@github.com/*)
+          userinfo="${line#https://}"
+          userinfo="${userinfo%%@github.com*}"
+          ;;
       esac
-    done < <(git -C "$BACKEND_DIR" config --local --list)
-    git "${git_config[@]}" clone --branch main "$url" "$directory"
-    for line in $(git -C "$BACKEND_DIR" config --local --name-only --get-regexp '^(credential\.|url\.)' || true); do
-      git -C "$directory" config --local "$line" "$(git -C "$BACKEND_DIR" config --local --get "$line")"
-    done
+    fi
+    if [ -z "$userinfo" ]; then
+      die "No hay una credencial reutilizable para clonar planes de estudio"
+    fi
+    askpass="$(mktemp)"
+    printf '%s\n' '#!/bin/sh' 'case "$1" in' '*Username*) printf %s "${GIT_CLONE_USER}" ;;' '*) printf %s "${GIT_CLONE_PASS}" ;;' 'esac' > "$askpass"
+    chmod 700 "$askpass"
+    GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="$askpass" \
+      GIT_CLONE_USER="${userinfo%%:*}" GIT_CLONE_PASS="${userinfo#*:}" \
+      git clone --branch main "$url" "$directory"
+    rm -f "$askpass"
+    printf 'protocol=https\nhost=github.com\nusername=%s\npassword=%s\n\n' "${userinfo%%:*}" "${userinfo#*:}" | git -C "$directory" credential approve || true
   fi
   update_repo "$directory"
 }
