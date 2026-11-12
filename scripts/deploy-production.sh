@@ -14,7 +14,8 @@ STUDY_PLANS_FRONTEND_URL="${STUDY_PLANS_FRONTEND_URL:-https://github.com/jhon-li
 DEPLOY_STATE_FILE="${DEPLOY_STATE_FILE:-$CI_ROOT/.ci-deploy-state}"
 SAVE_DEPLOYMENT_STATE=false
 
-log() { printf '[ci-deploy] %s\n' "$*"; }
+log() { printf '[ci-deploy] %s\n' "$*" >&2; }
+trap 'log "se detuvo en la linea $LINENO"' ERR
 die() { log "ERROR: $*" >&2; exit 1; }
 
 update_repo() {
@@ -181,7 +182,10 @@ case "$SOURCE_COMPONENT" in
     update_repo "$TICKETS_FRONTEND_DIR"
     update_repo "$IDENTITY_FRONTEND_DIR"
     ensure_checkout "$STUDY_PLANS_FRONTEND_DIR" "$STUDY_PLANS_FRONTEND_URL"
+    log "Comparando el estado del despliegue"
+    set +o pipefail
     deployment_state > "${DEPLOY_STATE_FILE}.next"
+    set -o pipefail
     if [ -f "$DEPLOY_STATE_FILE" ] && cmp -s "$DEPLOY_STATE_FILE" "${DEPLOY_STATE_FILE}.next"; then
       log "Los commits actuales ya están desplegados; se comprueba que los servicios sigan en pie"
       cd "$DEPLOY_DIR"
