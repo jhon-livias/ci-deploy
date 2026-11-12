@@ -15,6 +15,7 @@ DEPLOY_STATE_FILE="${DEPLOY_STATE_FILE:-$CI_ROOT/.ci-deploy-state}"
 SAVE_DEPLOYMENT_STATE=false
 
 log() { printf '[ci-deploy] %s\n' "$*" >&2; }
+trap '' PIPE
 trap 'log "se detuvo en la linea $LINENO"' ERR
 die() { log "ERROR: $*" >&2; exit 1; }
 
