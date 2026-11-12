@@ -12,7 +12,7 @@ if [[ ! -f .env ]]; then
 fi
 
 echo 'Construyendo la imagen del backend y la imagen de migraciones…'
-docker compose --env-file .env -f docker-compose.yml build gateway auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate
+docker compose --env-file .env -f docker-compose.yml build gateway auth-migrate academic-migrate payments-migrate attendance-grades-migrate students-migrate enrollment-migrate tickets-migrate study-plans-migrate
 
 echo 'Aplicando migraciones pendientes del servicio auth…'
 docker compose --env-file .env -f docker-compose.yml run --rm auth-migrate
@@ -21,10 +21,13 @@ docker compose --env-file .env -f docker-compose.yml run --rm payments-migrate
 docker compose --env-file .env -f docker-compose.yml run --rm attendance-grades-migrate
 docker compose --env-file .env -f docker-compose.yml run --rm students-migrate
 docker compose --env-file .env -f docker-compose.yml run --rm enrollment-migrate
+docker compose --env-file .env -f docker-compose.yml run --rm tickets-migrate
+docker compose --env-file .env -f docker-compose.yml run --rm study-plans-migrate
+docker compose --env-file .env -f docker-compose.yml run --rm --no-deps postgres-privileges
 
 echo 'Recreando microservicios y Gateway, sin reiniciar frontend ni infraestructura…'
 docker compose --env-file .env -f docker-compose.yml up -d --no-deps --force-recreate \
-  gateway auth academic students enrollment attendance-grades exams payments
+  gateway auth academic students enrollment attendance-grades exams payments tickets study-plans
 
 echo 'Esperando la comprobación de salud del Gateway…'
 for attempt in {1..20}; do
