@@ -137,7 +137,7 @@ release_backend() {
 }
 
 install_study_plans_host() {
-  if [ -x "$DEPLOY_DIR/scripts/install-study-plans-apache-host.sh" ]; then
+  if [ -f "$DEPLOY_DIR/scripts/install-study-plans-apache-host.sh" ]; then
     bash "$DEPLOY_DIR/scripts/install-study-plans-apache-host.sh" || log "El virtual host de planes no quedó activo. Revisa el certificado de planes.uprit.edu.pe."
   fi
 }
