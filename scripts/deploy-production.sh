@@ -65,7 +65,7 @@ ensure_secret() {
     return 0
   fi
   local value
-  value="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 40)"
+  value="$(openssl rand -hex 20)"
   local tmp
   tmp="$(mktemp)"
   grep -a -v "^${key}=" .env > "$tmp" || true
