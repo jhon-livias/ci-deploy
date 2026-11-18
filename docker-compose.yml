@@ -84,6 +84,7 @@ services:
       ENROLLMENT_INTERNAL_SECRET: ${ENROLLMENT_INTERNAL_SECRET:?set-in-env}
       ATTENDANCE_INTERNAL_SECRET: ${ATTENDANCE_INTERNAL_SECRET:?set-in-env}
       PAYMENTS_INTERNAL_SECRET: ${PAYMENTS_INTERNAL_SECRET:?set-in-env}
+      TICKETS_AUTH_INTERNAL_SECRET: ${TICKETS_AUTH_INTERNAL_SECRET:?set-in-env}
       ACADEMIC_UPSTREAM: http://academic:3002
       PAYMENTS_UPSTREAM: http://payments:3007
       ATTENDANCE_GRADES_UPSTREAM: http://attendance-grades:3005
@@ -306,6 +307,7 @@ services:
   tickets:
     <<: *backend-image
     depends_on:
+      auth: { condition: service_healthy }
       tickets-migrate: { condition: service_completed_successfully }
       postgres-privileges: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
@@ -316,6 +318,8 @@ services:
       TICKETS_PORT: 3008
       TICKETS_DATABASE_URL: postgresql://tickets_user:${TICKETS_DB_PASSWORD:?set-in-env}@postgres:5432/${POSTGRES_DB}?schema=tickets
       AUTH_JWT_ACCESS_SECRET: ${AUTH_JWT_ACCESS_SECRET:?set-in-env}
+      AUTH_INTERNAL_URL: http://auth:3001
+      TICKETS_AUTH_INTERNAL_SECRET: ${TICKETS_AUTH_INTERNAL_SECRET:?set-in-env}
       APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS:?set-in-env}
     expose: ['3008']
 

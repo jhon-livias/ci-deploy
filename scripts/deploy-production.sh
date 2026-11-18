@@ -105,6 +105,7 @@ prepare_env() {
   ensure_secret ENROLLMENT_INTERNAL_SECRET 32
   ensure_secret ATTENDANCE_INTERNAL_SECRET 32
   ensure_secret PAYMENTS_INTERNAL_SECRET 32
+  ensure_secret TICKETS_AUTH_INTERNAL_SECRET 32
   ensure_csv APP_ALLOWED_ORIGINS "https://planes.uprit.edu.pe"
   ensure_csv RECAPTCHA_ALLOWED_HOSTNAMES "planes.uprit.edu.pe"
 }
